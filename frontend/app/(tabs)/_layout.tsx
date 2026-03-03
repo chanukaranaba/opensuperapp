@@ -16,10 +16,15 @@
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
+import { RootState } from "@/context/store";
 import { useRestoreLastTab } from "@/hooks/useRestoreLastTab";
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useMemo } from "react";
 import { Platform } from "react-native";
+import { useSelector } from "react-redux";
+
+const CHAT_APP_ID = "super-app-chat";
 
 type TabType = {
   name: string;
@@ -29,6 +34,8 @@ type TabType = {
     icon: keyof typeof Ionicons.glyphMap;
     iconFocused: keyof typeof Ionicons.glyphMap;
   };
+  requiresAuth?: boolean;
+  requiresApp?: string;
 };
 
 const tabs: TabType[] = [
@@ -49,6 +56,16 @@ const tabs: TabType[] = [
       icon: "book-outline",
       iconFocused: "book",
     },
+  },
+  {
+    name: "chat",
+    options: {
+      headerShown: true,
+      title: "Chat",
+      icon: "chatbubble-ellipses-outline",
+      iconFocused: "chatbubble-ellipses",
+    },
+    requiresAuth: true,
   },
   {
     name: "apps",
@@ -74,6 +91,25 @@ export default function TabLayout() {
   // Load last active tab and navigate to it
   useRestoreLastTab();
 
+  const { apps } = useSelector((state: RootState) => state.apps);
+  const { accessToken } = useSelector((state: RootState) => state.auth);
+
+  // Determine which tabs should be hidden based on auth state and app availability
+  const hiddenTabs = useMemo(() => {
+    const hidden = new Set<string>();
+    for (const tab of tabs) {
+      if (tab.requiresAuth && !accessToken) {
+        hidden.add(tab.name);
+      } else if (
+        tab.requiresApp &&
+        !apps.some((app) => app.appId === tab.requiresApp)
+      ) {
+        hidden.add(tab.name);
+      }
+    }
+    return hidden;
+  }, [apps, accessToken]);
+
   return (
     <Tabs
       screenOptions={{
@@ -93,6 +129,7 @@ export default function TabLayout() {
           key={`tab-${index}`}
           name={tab.name}
           options={{
+            href: hiddenTabs.has(tab.name) ? null : undefined,
             tabBarAccessibilityLabel: `tab_${tab.name}`,
             headerShown: tab.options.headerShown,
             title: tab.options.title,

@@ -181,7 +181,60 @@ build/
 
 ---
 
-## 📂 Project Structure
+## � AI Chat Agent Integration
+
+The Super App includes a built-in **AI Chat** tab that connects to a Python-based chat agent backend. The chat allows employees to ask natural-language questions (e.g., "What's for lunch today?") and get intelligent responses powered by GPT-4o.
+
+### How It Works
+
+1. The **Chat tab** appears in the tab bar for authenticated users.
+2. When the user sends a message, the frontend sends a `POST /chat` request to the chat agent with the user's **super app access token**.
+3. The chat agent performs **token exchange** (RFC 8693) with Asgardeo to get a micro-app-scoped token.
+4. The agent calls the relevant micro-app backend API and returns a formatted response.
+
+### Chat Agent Authentication Flow
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Super App
+    participant Chat Agent
+    participant IAM as Asgardeo IAM
+    participant Backend as Micro-App Backend
+
+    User ->> Super App: Send chat message
+    Super App ->> Chat Agent: POST /chat (Bearer access_token)
+    Chat Agent ->> IAM: Token Exchange (super app token → micro-app token)
+    IAM -->> Chat Agent: Exchanged access_token
+    Chat Agent ->> Backend: API call (x-jwt-assertion: exchanged_token)
+    Backend -->> Chat Agent: API response
+    Chat Agent -->> Super App: Formatted reply
+    Super App -->> User: Display message
+```
+
+### Key Frontend Files
+
+| File | Purpose |
+|---|---|
+| `app/(tabs)/chat.tsx` | Chat screen UI (messages, input, markdown rendering) |
+| `services/chatService.ts` | API client for the chat agent backend |
+| `constants/Constants.ts` | `CHAT_AGENT_URL` from environment variables |
+
+### Frontend Environment Variable
+
+Add to your `.env` file:
+
+```bash
+# Chat Agent Backend URL (use LAN IP for physical device testing)
+EXPO_PUBLIC_CHAT_AGENT_URL=http://localhost:8000
+```
+
+> For the chat agent backend setup, see [chat-agent/README.md](../chat-agent/README.md).
+> For available agent skills and how to add new ones, see [chat-agent/SKILLS.md](../chat-agent/SKILLS.md).
+
+---
+
+## �📂 Project Structure
 
 ```shell
 .

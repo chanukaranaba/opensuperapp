@@ -67,6 +67,7 @@ export const GOOGLE_DRIVE_FILE_DOWNLOAD_URL = (fileId: string) =>
   }${fileId}?alt=media`;
 export const GOOGLE_TOKEN_INFO_URL = (accessToken: string) =>
   `${process.env.EXPO_PUBLIC_GOOGLE_TOKEN_INFO_URL ?? ""}${accessToken}`;
+export const CHAT_AGENT_URL = process.env.EXPO_PUBLIC_CHAT_AGENT_URL ?? "";
 export const EVENTS_URL = process.env.EXPO_PUBLIC_EVENTS_URL ?? "";
 export const LOCAL_NOTIFICATIONS_KEY =
   process.env.EXPO_PUBLIC_LOCAL_NOTIFICATIONS_KEY ?? "";

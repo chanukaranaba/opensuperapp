@@ -45,6 +45,9 @@ Here’s a high-level view of the flow:
 .
 ├── backend                  # Ballerina backend service
 │   └── README.md            # Detailed backend documentation
+├── chat-agent               # AI-powered chat agent (Python)
+│   ├── README.md            # Setup & architecture docs
+│   └── SKILLS.md            # Agent skills & extensibility guide
 ├── frontend                 # React Native Super App
 │   └── README.md            # Detailed frontend documentation
 ├── README.md                # You're here
@@ -58,6 +61,13 @@ Here’s a high-level view of the flow:
 - **Authentication**: Supports authentication via any standard OIDC-compliant Identity Provider
 - **Deployment**: Any cloud or internal developer platform
 
+### Chat Agent
+
+- **Language**: Python 3.11+
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) with async support
+- **LLM Orchestration**: [LangChain](https://python.langchain.com/) with OpenAI GPT-4o
+- **Authentication**: OAuth 2.0 Token Exchange (RFC 8693) via Asgardeo
+
 ### Frontend
 
 - **Framework**: React Native (Expo)
@@ -70,6 +80,7 @@ Each part of this repository has its own setup guide:
 
 - [Frontend](./frontend/README.md)
 - [Backend](./backend/README.md)
+- [Chat Agent](./chat-agent/README.md)
 
 ## Reporting Issues
 

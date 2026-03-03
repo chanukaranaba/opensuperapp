@@ -16,6 +16,7 @@
 export enum ScreenPaths {
   FEED = "/(tabs)",
   LIBRARY = "/library",
+  CHAT = "/(tabs)/chat",
   MY_APPS = "/(tabs)/apps",
   STORE = "/(tabs)/apps/store",
   MICRO_APP = "/micro-app",
