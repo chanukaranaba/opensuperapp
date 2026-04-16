@@ -52,13 +52,14 @@ async def get_todays_menu(access_token: str) -> dict:
     Args:
         access_token: The exchanged access token for authentication (injected by the agent).
     """
+    headers = {"Authorization": f"Bearer {access_token}"}
+    if DEBUG:
+        headers["x-jwt-assertion"] = access_token  # only sent in local debug mode
+
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(
             f"{MEALS_BACKEND_URL}/menu",
-            headers={
-                "x-jwt-assertion": access_token,
-                "Authorization": f"Bearer {access_token}",
-            },
+            headers=headers,
         )
         if response.status_code != 200:
             return {"error": f"Menu API returned {response.status_code}: {response.text}"}
@@ -66,6 +67,33 @@ async def get_todays_menu(access_token: str) -> dict:
 ```
 
 **Why this matters:** Adding a new backend skill never requires modifying existing tool code. You simply create a new `@tool` function — the LLM discovers it via the tool definition automatically.
+
+---
+
+## Principle 1b — Multi-Turn Conversation History
+
+The agent maintains conversational context across multiple messages. The `/chat` endpoint accepts an optional `history` array, and `run_agent` prepends prior turns to the LangChain message list before invoking the LLM:
+
+```python
+# app/agent.py
+async def run_agent(
+    user_message: str,
+    access_token: str,
+    history: list[dict] | None = None,
+) -> str:
+    messages = [SystemMessage(content=build_system_prompt())]
+
+    if history:
+        for msg in history:
+            if msg["role"] == "user":
+                messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                messages.append(AIMessage(content=msg["content"]))
+
+    messages.append(HumanMessage(content=user_message))
+```
+
+The system prompt is rebuilt on every request (via `build_system_prompt()`) so time-sensitive data — current date/time and the feedback window status — is always fresh regardless of how long the conversation has been running.
 
 ---
 
@@ -154,19 +182,23 @@ try:
     result = await get_todays_menu.ainvoke({"access_token": meals_token})
 except Exception as e:
     logger.error("Tool execution failed: %s", e)
-    result = {"error": str(e)}
+    result = {"error": "Failed to fetch data. Please try again later."}
 ```
 
-Even if token exchange or the tool itself throws, the error is wrapped as a `ToolMessage` and passed back to the LLM, which then explains the issue conversationally.
+Even if token exchange or the tool itself throws, the error is wrapped as a `ToolMessage` and passed back to the LLM, which then explains the issue conversationally. Error messages are intentionally user-friendly — raw exception details are only logged, never surfaced.
 
 ### Layer 3 — Endpoint-level errors (main.py)
 
 ```python
 try:
-    reply = await run_agent(request.message, access_token)
+    reply = await run_agent(request.message, access_token, history)
     return ChatResponse(reply=reply)
 except Exception as e:
-    raise HTTPException(status_code=500, detail=f"Agent error: {str(e)}")
+    logger.error("Agent error: %s", e)
+    raise HTTPException(
+        status_code=500,
+        detail="An internal error occurred. Please try again later.",
+    )
 ```
 
 If the entire agent pipeline fails, the FastAPI endpoint returns a structured error to the frontend, which displays it in the chat UI.
@@ -286,13 +318,14 @@ async def get_leave_balance(access_token: str) -> dict:
     Args:
         access_token: The exchanged access token for authentication.
     """
+    headers = {"Authorization": f"Bearer {access_token}"}
+    if DEBUG:
+        headers["x-jwt-assertion"] = access_token
+
     async with httpx.AsyncClient(timeout=15.0) as client:
         response = await client.get(
             f"{LEAVE_BACKEND_URL}/balance",
-            headers={
-                "x-jwt-assertion": access_token,
-                "Authorization": f"Bearer {access_token}",
-            },
+            headers=headers,
         )
         if response.status_code != 200:
             return {"error": f"Leave API returned {response.status_code}: {response.text}"}
